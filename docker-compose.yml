@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  mqtt_broker:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+    networks:
+      - my_network
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo/data:/data/db
+    networks:
+      - my_network
+
+  sensor:
+    build:
+      context: ./Sensor
+      dockerfile: Dockerfile
+    depends_on:
+      - mqtt_broker
+      - analytics
+      - mongodb
+    networks:
+      - my_network
+
+  analytics:
+    build:
+      context: ./Analytics
+      dockerfile: Dockerfile
+    depends_on:
+      - mqtt_broker
+      - eventinfoservice
+    networks:
+      - my_network
+
+  eventinfoservice:
+    build:
+      context: .
+      dockerfile: ./EventInfoService/Dockerfile
+    ports:
+      - "5241:80"
+    depends_on:
+      - mqtt_broker
+    networks:
+      - my_network
+
+networks:
+  my_network:
